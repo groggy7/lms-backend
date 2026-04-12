@@ -75,10 +75,10 @@ func main() {
 	authUsecase := usecase.NewAuthUsecase(userRepo)
 	authHandler := delivery.NewAuthHandler(authUsecase)
 
-	// Initialize PDF components
+	// Initialize Document components
 	pdfWatermarker := repository.NewPDFWatermarker()
-	pdfUsecase := usecase.NewPDFUsecase(pdfWatermarker)
-	pdfHandler := delivery.NewPDFHandler(pdfUsecase)
+	documentUsecase := usecase.NewDocumentUsecase(pdfWatermarker, mediaStorage)
+	documentHandler := delivery.NewDocumentHandler(documentUsecase)
 
 	// Initialize Usecase
 	videoUsecase := usecase.NewVideoUsecase(videoRepo, mediaStorage, videoTranscoder)
@@ -96,8 +96,9 @@ func main() {
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
 	r.POST("/upload", videoHandler.UploadChunk)
+	r.POST("/upload/document", documentHandler.Upload)
 	r.GET("/ws/progress", progressHandler.HandleWS)
-	r.GET("/download/pdf", pdfHandler.Download)
+	r.GET("/download/pdf", documentHandler.Download)
 
 	// Start Server
 	fmt.Println("Server starting on :8080")

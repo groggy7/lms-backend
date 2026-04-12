@@ -10,15 +10,35 @@ import (
 	"github.com/serhatkilbas/lms-poc/internal/domain"
 )
 
-type PDFHandler struct {
-	usecase domain.PDFUsecase
+type DocumentHandler struct {
+	usecase domain.DocumentUsecase
 }
 
-func NewPDFHandler(usecase domain.PDFUsecase) *PDFHandler {
-	return &PDFHandler{usecase: usecase}
+func NewDocumentHandler(usecase domain.DocumentUsecase) *DocumentHandler {
+	return &DocumentHandler{usecase: usecase}
 }
 
-func (h *PDFHandler) Download(c *gin.Context) {
+func (h *DocumentHandler) Upload(c *gin.Context) {
+	file, header, err := c.Request.FormFile("document")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No document provided"})
+		return
+	}
+	defer file.Close()
+
+	location, err := h.usecase.Upload(c.Request.Context(), file, header.Filename, header.Header.Get("Content-Type"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload document", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":  "Document uploaded successfully",
+		"location": location,
+	})
+}
+
+func (h *DocumentHandler) Download(c *gin.Context) {
 	userID := c.Query("userId")
 	if userID == "" {
 		userID = "anonymous"

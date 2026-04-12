@@ -26,6 +26,7 @@ type VideoUsecase interface {
 
 type MediaStorage interface {
 	UploadFile(ctx context.Context, filePath, fileName string) (string, error)
+	UploadStream(ctx context.Context, reader io.Reader, fileName, contentType string) (string, error)
 	UploadDirectory(ctx context.Context, localDir, remotePrefix string) error
 }
 

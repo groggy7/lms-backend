@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -44,12 +45,22 @@ func (s *s3MediaStorage) UploadFile(ctx context.Context, filePath, fileName stri
 	}
 	defer file.Close()
 
+	return s.UploadStream(ctx, file, fileName, "")
+}
+
+func (s *s3MediaStorage) UploadStream(ctx context.Context, reader io.Reader, fileName, contentType string) (string, error) {
 	uploader := manager.NewUploader(s.client)
-	result, err := uploader.Upload(ctx, &s3.PutObjectInput{
+	input := &s3.PutObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(fileName),
-		Body:   file,
-	})
+		Body:   reader,
+	}
+
+	if contentType != "" {
+		input.ContentType = aws.String(contentType)
+	}
+
+	result, err := uploader.Upload(ctx, input)
 	if err != nil {
 		return "", err
 	}
