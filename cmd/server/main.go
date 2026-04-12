@@ -11,6 +11,7 @@ import (
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	delivery "github.com/serhatkilbas/lms-poc/internal/delivery/http"
+	"github.com/serhatkilbas/lms-poc/internal/delivery/http/middleware"
 	"github.com/serhatkilbas/lms-poc/internal/domain"
 	"github.com/serhatkilbas/lms-poc/internal/repository"
 	"github.com/serhatkilbas/lms-poc/internal/usecase"
@@ -49,6 +50,7 @@ func main() {
 	// Initialize Repositories
 	videoRepo := repository.NewLocalVideoRepository("./uploads")
 	userRepo := repository.NewPostgresUserRepository(db)
+	courseRepo := repository.NewPostgresCourseRepository(db)
 
 	// Initialize Media Storage (R2)
 	var mediaStorage domain.MediaStorage
@@ -74,6 +76,10 @@ func main() {
 	// Initialize Auth components
 	authUsecase := usecase.NewAuthUsecase(userRepo)
 	authHandler := delivery.NewAuthHandler(authUsecase)
+
+	// Initialize Course components
+	courseUsecase := usecase.NewCourseUsecase(courseRepo, mediaStorage)
+	courseHandler := delivery.NewCourseHandler(courseUsecase)
 
 	// Initialize Document components
 	pdfWatermarker := repository.NewPDFWatermarker()
@@ -105,6 +111,20 @@ func main() {
 	r.POST("/upload/document", documentHandler.Upload)
 	r.GET("/ws/progress", progressHandler.HandleWS)
 	r.GET("/download/pdf", documentHandler.Download)
+
+	// Course Routes (Protected)
+	courseRoutes := r.Group("/courses")
+	courseRoutes.Use(middleware.AuthMiddleware())
+	{
+		courseRoutes.GET("", courseHandler.List)
+		courseRoutes.GET("/:id", courseHandler.Get)
+		courseRoutes.POST("", courseHandler.Create)
+		courseRoutes.PUT("/:id", courseHandler.Update)
+		courseRoutes.DELETE("/:id", courseHandler.Delete)
+		courseRoutes.POST("/:id/lessons", courseHandler.AddLesson)
+		courseRoutes.PUT("/:id/lessons/:lessonId", courseHandler.UpdateLesson)
+		courseRoutes.DELETE("/:id/lessons/:lessonId", courseHandler.DeleteLesson)
+	}
 
 	// Start Server
 	fmt.Println("Server starting on :8080")

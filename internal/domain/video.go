@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"io"
+	"time"
 )
 
 type Chunk struct {
@@ -28,6 +29,7 @@ type MediaStorage interface {
 	UploadFile(ctx context.Context, filePath, fileName string) (string, error)
 	UploadStream(ctx context.Context, reader io.Reader, fileName, contentType string) (string, error)
 	UploadDirectory(ctx context.Context, localDir, remotePrefix string) error
+	GetPresignedURL(ctx context.Context, fileName string, expires time.Duration) (string, error)
 }
 
 
