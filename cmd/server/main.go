@@ -90,11 +90,17 @@ func main() {
 	r := gin.Default()
 
 	// Setup CORS
-	r.Use(cors.Default())
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:5173"} // Vite frontend port
+	config.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
+	config.AllowCredentials = true
+	r.Use(cors.New(config))
 
 	// Routes
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
+	r.POST("/logout", authHandler.Logout)
 	r.POST("/upload", videoHandler.UploadChunk)
 	r.POST("/upload/document", documentHandler.Upload)
 	r.GET("/ws/progress", progressHandler.HandleWS)
