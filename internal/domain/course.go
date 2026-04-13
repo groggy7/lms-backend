@@ -54,6 +54,7 @@ type CourseRepository interface {
 	UpdateContent(ctx context.Context, content *CourseContent) error
 	DeleteContent(ctx context.Context, id string) error
 	GetContentByCourse(ctx context.Context, courseID string) ([]CourseContent, error)
+	BulkReorder(ctx context.Context, courseID string, lessonIDs []string) error
 }
 
 type CourseUsecase interface {
@@ -65,4 +66,5 @@ type CourseUsecase interface {
 	AddLessonToCourse(ctx context.Context, content *CourseContent, file interface{}, fileName string) error
 	UpdateLesson(ctx context.Context, content *CourseContent) error
 	DeleteLesson(ctx context.Context, id string) error
+	ReorderLessons(ctx context.Context, courseID string, lessonIDs []string) error
 }

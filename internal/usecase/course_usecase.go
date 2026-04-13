@@ -85,6 +85,10 @@ func (u *courseUsecase) DeleteLesson(ctx context.Context, id string) error {
 	return u.repo.DeleteContent(ctx, id)
 }
 
+func (u *courseUsecase) ReorderLessons(ctx context.Context, courseID string, lessonIDs []string) error {
+	return u.repo.BulkReorder(ctx, courseID, lessonIDs)
+}
+
 func (u *courseUsecase) AddLessonToCourse(ctx context.Context, content *domain.CourseContent, file interface{}, fileName string) error {
 	if file != nil && u.mediaStorage != nil {
 		reader := file.(io.Reader)

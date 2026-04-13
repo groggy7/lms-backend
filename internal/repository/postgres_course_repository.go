@@ -135,6 +135,23 @@ func (r *postgresCourseRepository) DeleteContent(ctx context.Context, id string)
 	return nil
 }
 
+func (r *postgresCourseRepository) BulkReorder(ctx context.Context, courseID string, lessonIDs []string) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	for i, id := range lessonIDs {
+		query := `UPDATE course_contents SET order_index = $1 WHERE id = $2 AND course_id = $3`
+		if _, err := tx.ExecContext(ctx, query, i, id, courseID); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
 func (r *postgresCourseRepository) GetContentByCourse(ctx context.Context, courseID string) ([]domain.CourseContent, error) {
 	query := `
 		SELECT id, course_id, title, type, content_url, content_body, order_index, created_at 

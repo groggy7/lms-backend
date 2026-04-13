@@ -122,6 +122,7 @@ func main() {
 		courseRoutes.PUT("/:id", courseHandler.Update)
 		courseRoutes.DELETE("/:id", courseHandler.Delete)
 		courseRoutes.POST("/:id/lessons", courseHandler.AddLesson)
+		courseRoutes.POST("/:id/lessons/reorder", courseHandler.ReorderLessons)
 		courseRoutes.PUT("/:id/lessons/:lessonId", courseHandler.UpdateLesson)
 		courseRoutes.DELETE("/:id/lessons/:lessonId", courseHandler.DeleteLesson)
 	}
