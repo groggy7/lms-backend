@@ -24,6 +24,7 @@ type Course struct {
 	ID           string         `json:"id"`
 	Title        string         `json:"title"`
 	Description  string         `json:"description"`
+	ThumbnailURL string         `json:"thumbnailUrl"`
 	InstructorID string         `json:"instructorId"`
 	Status       CourseStatus   `json:"status"`
 	Contents     []CourseContent `json:"contents,omitempty"`

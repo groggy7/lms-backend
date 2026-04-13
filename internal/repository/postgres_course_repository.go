@@ -20,27 +20,29 @@ func NewPostgresCourseRepository(db *sql.DB) domain.CourseRepository {
 func (r *postgresCourseRepository) Create(ctx context.Context, course *domain.Course) error {
 	course.ID = fmt.Sprintf("crs_%d", rand.Intn(1000000))
 	query := `
-		INSERT INTO courses (id, title, description, instructor_id, status, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		INSERT INTO courses (id, title, description, thumbnail_url, instructor_id, status, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 		RETURNING created_at, updated_at
 	`
 	return r.db.QueryRowContext(ctx, query,
 		course.ID,
 		course.Title,
 		course.Description,
+		course.ThumbnailURL,
 		course.InstructorID,
 		course.Status,
 	).Scan(&course.CreatedAt, &course.UpdatedAt)
 }
 
 func (r *postgresCourseRepository) GetByID(ctx context.Context, id string) (*domain.Course, error) {
-	query := `SELECT id, title, description, instructor_id, status, created_at, updated_at FROM courses WHERE id = $1`
+	query := `SELECT id, title, description, thumbnail_url, instructor_id, status, created_at, updated_at FROM courses WHERE id = $1`
 
 	course := &domain.Course{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&course.ID,
 		&course.Title,
 		&course.Description,
+		&course.ThumbnailURL,
 		&course.InstructorID,
 		&course.Status,
 		&course.CreatedAt,
@@ -59,7 +61,7 @@ func (r *postgresCourseRepository) GetByID(ctx context.Context, id string) (*dom
 }
 
 func (r *postgresCourseRepository) List(ctx context.Context) ([]domain.Course, error) {
-	query := `SELECT id, title, description, instructor_id, status, created_at, updated_at FROM courses ORDER BY created_at DESC`
+	query := `SELECT id, title, description, thumbnail_url, instructor_id, status, created_at, updated_at FROM courses ORDER BY created_at DESC`
 
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
@@ -70,7 +72,7 @@ func (r *postgresCourseRepository) List(ctx context.Context) ([]domain.Course, e
 	var courses []domain.Course
 	for rows.Next() {
 		var c domain.Course
-		if err := rows.Scan(&c.ID, &c.Title, &c.Description, &c.InstructorID, &c.Status, &c.CreatedAt, &c.UpdatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.Title, &c.Description, &c.ThumbnailURL, &c.InstructorID, &c.Status, &c.CreatedAt, &c.UpdatedAt); err != nil {
 			return nil, err
 		}
 		courses = append(courses, c)
@@ -81,10 +83,10 @@ func (r *postgresCourseRepository) List(ctx context.Context) ([]domain.Course, e
 func (r *postgresCourseRepository) Update(ctx context.Context, course *domain.Course) error {
 	query := `
 		UPDATE courses 
-		SET title = $1, description = $2, status = $3, updated_at = CURRENT_TIMESTAMP 
-		WHERE id = $4
+		SET title = $1, description = $2, thumbnail_url = $3, status = $4, updated_at = CURRENT_TIMESTAMP 
+		WHERE id = $5
 	`
-	_, err := r.db.ExecContext(ctx, query, course.Title, course.Description, course.Status, course.ID)
+	_, err := r.db.ExecContext(ctx, query, course.Title, course.Description, course.ThumbnailURL, course.Status, course.ID)
 	return err
 }
 
