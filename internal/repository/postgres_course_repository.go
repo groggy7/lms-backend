@@ -114,6 +114,29 @@ func (r *postgresCourseRepository) AddContent(ctx context.Context, content *doma
 	).Scan(&content.CreatedAt)
 }
 
+func (r *postgresCourseRepository) GetContentByID(ctx context.Context, id string) (*domain.CourseContent, error) {
+	query := `
+		SELECT id, course_id, title, type, content_url, content_body, order_index, created_at 
+		FROM course_contents 
+		WHERE id = $1
+	`
+	content := &domain.CourseContent{}
+	err := r.db.QueryRowContext(ctx, query, id).Scan(
+		&content.ID,
+		&content.CourseID,
+		&content.Title,
+		&content.Type,
+		&content.ContentURL,
+		&content.ContentBody,
+		&content.OrderIndex,
+		&content.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return content, nil
+}
+
 func (r *postgresCourseRepository) UpdateContent(ctx context.Context, content *domain.CourseContent) error {
 	query := `
 		UPDATE course_contents 

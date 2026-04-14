@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/serhatkilbas/lms-poc/internal/domain"
 	"io"
 )
@@ -90,6 +91,43 @@ func (s *s3MediaStorage) GetPresignedURL(ctx context.Context, fileName string, e
 	}
 
 	return request.URL, nil
+}
+
+func (s *s3MediaStorage) DeleteDirectory(ctx context.Context, remotePrefix string) error {
+	// 1. List all objects with the prefix
+	listInput := &s3.ListObjectsV2Input{
+		Bucket: aws.String(s.bucket),
+		Prefix: aws.String(remotePrefix),
+	}
+
+	result, err := s.client.ListObjectsV2(ctx, listInput)
+	if err != nil {
+		return err
+	}
+
+	if len(result.Contents) == 0 {
+		return nil
+	}
+
+	// 2. Prepare objects for deletion
+	var objectIds []types.ObjectIdentifier
+	for _, obj := range result.Contents {
+		objectIds = append(objectIds, types.ObjectIdentifier{
+			Key: obj.Key,
+		})
+	}
+
+	// 3. Delete objects in bulk
+	deleteInput := &s3.DeleteObjectsInput{
+		Bucket: aws.String(s.bucket),
+		Delete: &types.Delete{
+			Objects: objectIds,
+			Quiet:   aws.Bool(true),
+		},
+	}
+
+	_, err = s.client.DeleteObjects(ctx, deleteInput)
+	return err
 }
 
 func (s *s3MediaStorage) UploadDirectory(ctx context.Context, localDir, remotePrefix string) error {

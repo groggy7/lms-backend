@@ -40,42 +40,49 @@ func (u *videoUsecase) ProcessChunk(ctx context.Context, chunk domain.Chunk) (bo
 			return true, err
 		}
 
-		// Transcode to HLS
-		if u.transcoder != nil {
-			outputDir := filepath.Join(filepath.Dir(localPath), chunk.UploadID+"_hls")
-			_, err = u.transcoder.TranscodeToHLS(ctx, localPath, outputDir)
-			if err != nil {
-				fmt.Printf("Failed to transcode: %v\n", err)
-				return true, err
-			}
-			fmt.Printf("Successfully transcoded %s to HLS\n", chunk.FileName)
-
-			// Upload HLS directory to R2
-			if u.mediaStorage != nil {
-				remotePrefix := "videos/" + chunk.UploadID
-				err = u.mediaStorage.UploadDirectory(ctx, outputDir, remotePrefix)
+		// ASYNCHRONOUS HIGH-PERFORMANCE PROCESSING
+		// We launch a background routine so the API response isn't blocked by FFmpeg
+		go func() {
+			bgCtx := context.Background()
+			
+			// 1. Transcode to HLS
+			if u.transcoder != nil {
+				outputDir := filepath.Join("./hls_output", chunk.UploadID)
+				_, err = u.transcoder.TranscodeToHLS(bgCtx, localPath, outputDir)
 				if err != nil {
-					fmt.Printf("Failed to upload HLS directory: %v\n", err)
-					return true, err
+					fmt.Printf("[ERROR] Failed to transcode %s: %v\n", chunk.FileName, err)
+					return
 				}
-				fmt.Printf("Successfully uploaded HLS for %s to R2\n", chunk.FileName)
+				fmt.Printf("[INFO] Successfully transcoded %s to HLS\n", chunk.FileName)
+
+				// 2. Upload HLS segments and playlist to R2
+				if u.mediaStorage != nil {
+					remotePrefix := "streams/" + chunk.UploadID
+					err = u.mediaStorage.UploadDirectory(bgCtx, outputDir, remotePrefix)
+					if err != nil {
+						fmt.Printf("[ERROR] Failed to upload HLS to R2: %v\n", err)
+						return
+					}
+					fmt.Printf("[INFO] HLS segments for %s deployed to R2\n", chunk.FileName)
+				}
+
+				// 3. Cleanup local HLS files
+				os.RemoveAll(outputDir)
+			} else if u.mediaStorage != nil {
+				// Fallback: If no transcoder, just upload raw MP4 to R2
+				remotePath := "uploads/" + chunk.FileName
+				_, err = u.mediaStorage.UploadFile(bgCtx, localPath, remotePath)
+				if err != nil {
+					fmt.Printf("[ERROR] Failed fallback upload to R2: %v\n", err)
+					return
+				}
 			}
 
-			// Cleanup transcoded files
-			os.RemoveAll(outputDir)
-		} else if u.mediaStorage != nil {
-			// If no transcoder, just upload the raw file
-			_, err = u.mediaStorage.UploadFile(ctx, localPath, chunk.FileName)
-			if err != nil {
-				fmt.Printf("Failed to upload to storage: %v\n", err)
-				return true, err
-			}
-			fmt.Printf("Successfully uploaded %s to R2\n", chunk.FileName)
-		}
+			// 4. Cleanup raw assembled file and chunks
+			_ = u.videoRepo.CleanupChunks(bgCtx, chunk.UploadID)
+			os.Remove(localPath)
+		}()
 
-		// Cleanup chunks and the assembled local file
-		_ = u.videoRepo.CleanupChunks(ctx, chunk.UploadID)
-		os.Remove(localPath)
 		return true, nil
 	}
 

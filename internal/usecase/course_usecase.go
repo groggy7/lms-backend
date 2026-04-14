@@ -74,6 +74,15 @@ func (u *courseUsecase) UpdateCourse(ctx context.Context, course *domain.Course)
 }
 
 func (u *courseUsecase) DeleteCourse(ctx context.Context, id string) error {
+	// 1. Delete all assets from R2 first
+	if u.mediaStorage != nil {
+		// Delete course uploads
+		_ = u.mediaStorage.DeleteDirectory(ctx, "courses/"+id+"/")
+		// Delete potential streams (using courseID as part of uploadID logic if applicable)
+		// For now, focusing on the main course directory
+	}
+
+	// 2. Delete from DB (metadata)
 	return u.repo.Delete(ctx, id)
 }
 
@@ -82,6 +91,38 @@ func (u *courseUsecase) UpdateLesson(ctx context.Context, content *domain.Course
 }
 
 func (u *courseUsecase) DeleteLesson(ctx context.Context, id string) error {
+	// 1. Get lesson details to find R2 path
+	content, err := u.repo.GetContentByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// 2. Delete from R2 if applicable
+	if u.mediaStorage != nil && content.ContentURL != "" {
+		if content.Type == domain.ContentTypeVideo {
+			// Extract uploadID from URL to delete HLS stream
+			// Path is usually like streams/{uploadID}/index.m3u8
+			if strings.Contains(content.ContentURL, "/streams/") {
+				parts := strings.Split(content.ContentURL, "/streams/")
+				if len(parts) > 1 {
+					uploadID := strings.Split(parts[1], "/")[0]
+					_ = u.mediaStorage.DeleteDirectory(ctx, "streams/"+uploadID+"/")
+				}
+			}
+		} else if content.Type == domain.ContentTypeDocument {
+			// Delete specific document file
+			// Path is usually courses/{courseID}/{fileName}
+			if strings.Contains(content.ContentURL, "/courses/") {
+				parts := strings.Split(content.ContentURL, "/courses/")
+				if len(parts) > 1 {
+					key := "courses/" + parts[1]
+					_ = u.mediaStorage.DeleteDirectory(ctx, key) // DeleteDirectory works for single file too
+				}
+			}
+		}
+	}
+
+	// 3. Delete from DB
 	return u.repo.DeleteContent(ctx, id)
 }
 

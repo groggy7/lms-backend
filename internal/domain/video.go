@@ -30,6 +30,7 @@ type MediaStorage interface {
 	UploadStream(ctx context.Context, reader io.Reader, fileName, contentType string) (string, error)
 	UploadDirectory(ctx context.Context, localDir, remotePrefix string) error
 	GetPresignedURL(ctx context.Context, fileName string, expires time.Duration) (string, error)
+	DeleteDirectory(ctx context.Context, remotePrefix string) error
 }
 
 

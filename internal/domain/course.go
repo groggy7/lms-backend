@@ -52,6 +52,7 @@ type CourseRepository interface {
 	
 	// Content operations
 	AddContent(ctx context.Context, content *CourseContent) error
+	GetContentByID(ctx context.Context, id string) (*CourseContent, error)
 	UpdateContent(ctx context.Context, content *CourseContent) error
 	DeleteContent(ctx context.Context, id string) error
 	GetContentByCourse(ctx context.Context, courseID string) ([]CourseContent, error)

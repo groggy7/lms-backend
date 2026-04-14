@@ -48,7 +48,6 @@ func main() {
 	r2Bucket := os.Getenv("R2_BUCKET_NAME")
 
 	// Initialize Repositories
-	videoRepo := repository.NewLocalVideoRepository("./uploads")
 	userRepo := repository.NewPostgresUserRepository(db)
 	courseRepo := repository.NewPostgresCourseRepository(db)
 
@@ -61,9 +60,10 @@ func main() {
 		}
 		mediaStorage = storage
 		fmt.Println("R2 storage initialized")
-	} else {
-		fmt.Println("R2 storage not configured, skipping R2 upload")
 	}
+
+	// Use R2 for Video Repository too
+	videoRepo := repository.NewR2VideoRepository(mediaStorage)
 
 	// Initialize Transcoder
 	videoTranscoder := repository.NewFFmpegTranscoder()
