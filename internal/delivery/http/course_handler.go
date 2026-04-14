@@ -3,7 +3,9 @@ package http
 import (
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/serhatkilbas/lms-poc/internal/domain"
@@ -119,7 +121,16 @@ func (h *CourseHandler) AddLesson(c *gin.Context) {
 		}
 		defer f.Close()
 		fileStream = f
-		fileName = fileHeader.Filename
+		
+		// Use sanitized title as the filename
+		ext := filepath.Ext(fileHeader.Filename)
+		sanitizedTitle := strings.Map(func(r rune) rune {
+			if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+				return r
+			}
+			return '-'
+		}, title)
+		fileName = strings.ToLower(sanitizedTitle) + ext
 	}
 
 	if err := h.usecase.AddLessonToCourse(c.Request.Context(), content, fileStream, fileName); err != nil {
