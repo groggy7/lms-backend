@@ -21,7 +21,7 @@ jobs:
           # -w: Omit the DWARF symbol table
           # -s: Omit the symbol table and debug information
           # This significantly reduces binary size
-          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-w -s" -o lumina_server .
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-w -s" -o lumina_server ./cmd/server/main.go
 
       - name: upload
         uses: appleboy/scp-action@v0.1.7
