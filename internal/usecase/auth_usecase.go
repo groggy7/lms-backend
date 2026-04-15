@@ -32,7 +32,7 @@ func (u *authUsecase) Register(ctx context.Context, req domain.AuthRequest) (*do
 		Email:    req.Email,
 		Password: string(hashedPassword),
 		FullName: req.FullName,
-		Role:     domain.RoleInstructor, // Default to instructor as requested
+		Role:     domain.RoleStudent, // Default to student to prevent abuse
 	}
 
 	if err := u.userRepo.Create(ctx, user); err != nil {
