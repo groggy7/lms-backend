@@ -2,7 +2,6 @@ package http
 
 import (
 	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/serhatkilbas/lms-poc/internal/domain"
@@ -17,24 +16,22 @@ func NewAuthHandler(usecase domain.AuthUsecase) *AuthHandler {
 }
 
 func (h *AuthHandler) setAuthCookie(c *gin.Context, token string) {
-	// Determine if we should use secure cookies (production only)
-	secure := os.Getenv("GIN_MODE") == "release"
-	
 	// Max age of 3 days (matching JWT expiration)
 	maxAge := 3600 * 24 * 3
 
-	// Set SameSite=Lax explicitly for stability on localhost with different ports
-	c.SetSameSite(http.SameSiteLaxMode)
+	// Set SameSite=None to support cross-site requests (e.g. Netlify/Localhost frontend to DuckDNS backend)
+	// Note: SameSiteNoneMode REQUIRES Secure=true in most modern browsers.
+	c.SetSameSite(http.SameSiteNoneMode)
 
 	// Set the cookie
 	// Name, Value, MaxAge, Path, Domain, Secure, HttpOnly
 	c.SetCookie(
-		"lumina_auth", 
-		token, 
-		maxAge, 
-		"/", 
-		"", 
-		secure, 
+		"lumina_auth",
+		token,
+		maxAge,
+		"/",
+		"",
+		true, // Secure must be true for SameSite=None
 		true, // HttpOnly is critical for security
 	)
 }
@@ -85,14 +82,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
-	// Determine if we should use secure cookies (production only)
-	secure := os.Getenv("GIN_MODE") == "release"
-	
-	// Set SameSite=Lax for consistency
-	c.SetSameSite(http.SameSiteLaxMode)
+	// Set SameSite=None to match the SetCookie policy for cross-site cookie deletion
+	c.SetSameSite(http.SameSiteNoneMode)
 
-	// Clear the cookie
-	c.SetCookie("lumina_auth", "", -1, "/", "", secure, true)
+	// Clear the cookie (Secure must be true to match SameSite=None)
+	c.SetCookie("lumina_auth", "", -1, "/", "", true, true)
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }
 
