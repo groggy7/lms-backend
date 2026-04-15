@@ -111,10 +111,16 @@ func main() {
 	r.POST("/login", authHandler.Login)
 	r.POST("/logout", authHandler.Logout)
 	r.GET("/me", middleware.AuthMiddleware(), authHandler.Me)
-	r.POST("/upload", videoHandler.UploadChunk)
-	r.POST("/upload/document", documentHandler.Upload)
 	r.GET("/ws/progress", progressHandler.HandleWS)
 	r.GET("/download/pdf", documentHandler.Download)
+
+	// Protected Upload Routes
+	uploadRoutes := r.Group("/upload")
+	uploadRoutes.Use(middleware.AuthMiddleware(), middleware.RoleMiddleware(string(domain.RoleInstructor)))
+	{
+		uploadRoutes.POST("", videoHandler.UploadChunk)
+		uploadRoutes.POST("/document", documentHandler.Upload)
+	}
 
 	// Course Routes (Protected)
 	courseRoutes := r.Group("/courses")
@@ -122,13 +128,16 @@ func main() {
 	{
 		courseRoutes.GET("", courseHandler.List)
 		courseRoutes.GET("/:id", courseHandler.Get)
-		courseRoutes.POST("", courseHandler.Create)
-		courseRoutes.PUT("/:id", courseHandler.Update)
-		courseRoutes.DELETE("/:id", courseHandler.Delete)
-		courseRoutes.POST("/:id/lessons", courseHandler.AddLesson)
-		courseRoutes.POST("/:id/lessons/reorder", courseHandler.ReorderLessons)
-		courseRoutes.PUT("/:id/lessons/:lessonId", courseHandler.UpdateLesson)
-		courseRoutes.DELETE("/:id/lessons/:lessonId", courseHandler.DeleteLesson)
+		
+		// Instructor only routes
+		instructorMiddleware := middleware.RoleMiddleware(string(domain.RoleInstructor))
+		courseRoutes.POST("", instructorMiddleware, courseHandler.Create)
+		courseRoutes.PUT("/:id", instructorMiddleware, courseHandler.Update)
+		courseRoutes.DELETE("/:id", instructorMiddleware, courseHandler.Delete)
+		courseRoutes.POST("/:id/lessons", instructorMiddleware, courseHandler.AddLesson)
+		courseRoutes.POST("/:id/lessons/reorder", instructorMiddleware, courseHandler.ReorderLessons)
+		courseRoutes.PUT("/:id/lessons/:lessonId", instructorMiddleware, courseHandler.UpdateLesson)
+		courseRoutes.DELETE("/:id/lessons/:lessonId", instructorMiddleware, courseHandler.DeleteLesson)
 	}
 
 	// Start Server
