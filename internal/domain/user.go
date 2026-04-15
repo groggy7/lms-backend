@@ -33,9 +33,11 @@ type AuthResponse struct {
 type UserRepository interface {
 	Create(ctx context.Context, user User) error
 	GetByEmail(ctx context.Context, email string) (*User, error)
+	GetByID(ctx context.Context, id string) (*User, error)
 }
 
 type AuthUsecase interface {
 	Register(ctx context.Context, req AuthRequest) (*AuthResponse, error)
 	Login(ctx context.Context, req AuthRequest) (*AuthResponse, error)
+	Me(ctx context.Context, userID string) (*User, error)
 }

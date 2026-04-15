@@ -110,6 +110,7 @@ func main() {
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
 	r.POST("/logout", authHandler.Logout)
+	r.GET("/me", middleware.AuthMiddleware(), authHandler.Me)
 	r.POST("/upload", videoHandler.UploadChunk)
 	r.POST("/upload/document", documentHandler.Upload)
 	r.GET("/ws/progress", progressHandler.HandleWS)

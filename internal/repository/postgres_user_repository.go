@@ -42,3 +42,20 @@ func (r *postgresUserRepository) GetByEmail(ctx context.Context, email string) (
 	user.Role = domain.Role(role)
 	return &user, nil
 }
+
+func (r *postgresUserRepository) GetByID(ctx context.Context, id string) (*domain.User, error) {
+	query := `SELECT id, email, password, full_name, role FROM users WHERE id = $1`
+	row := r.db.QueryRowContext(ctx, query, id)
+
+	var user domain.User
+	var role string
+	err := row.Scan(&user.ID, &user.Email, &user.Password, &user.FullName, &role)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("user not found")
+		}
+		return nil, fmt.Errorf("failed to get user by id: %v", err)
+	}
+	user.Role = domain.Role(role)
+	return &user, nil
+}

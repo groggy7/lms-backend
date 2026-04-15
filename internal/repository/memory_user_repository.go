@@ -42,3 +42,16 @@ func (r *memoryUserRepository) GetByEmail(ctx context.Context, email string) (*d
 
 	return &user, nil
 }
+
+func (r *memoryUserRepository) GetByID(ctx context.Context, id string) (*domain.User, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	for _, user := range r.users {
+		if user.ID == id {
+			return &user, nil
+		}
+	}
+
+	return nil, errors.New("user not found")
+}

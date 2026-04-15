@@ -72,6 +72,10 @@ func (u *authUsecase) Login(ctx context.Context, req domain.AuthRequest) (*domai
 	}, nil
 }
 
+func (u *authUsecase) Me(ctx context.Context, userID string) (*domain.User, error) {
+	return u.userRepo.GetByID(ctx, userID)
+}
+
 func (u *authUsecase) generateJWT(user domain.User) (string, error) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
