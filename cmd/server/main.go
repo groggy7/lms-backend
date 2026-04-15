@@ -93,6 +93,9 @@ func main() {
 	videoHandler := delivery.NewVideoHandler(videoUsecase)
 
 	// Setup Gin
+	if os.Getenv("GIN_MODE") == "release" {
+		gin.SetMode(gin.ReleaseMode)
+	}
 	r := gin.Default()
 
 	// Setup CORS

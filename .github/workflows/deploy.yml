@@ -1,25 +1,45 @@
-name: Lumina-Server CD
+name: deploy
 
 on:
   push:
     branches: [ main ]
 
 jobs:
-  deploy:
+  lumina:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Deploy to Alibaba SAS
-        uses: appleboy/ssh-action@master
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true # Enable dependency caching for faster builds
+
+      - name: build
+        run: |
+          # Build a stripped binary for production
+          # -w: Omit the DWARF symbol table
+          # -s: Omit the symbol table and debug information
+          # This significantly reduces binary size
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-w -s" -o lumina_server .
+
+      - name: upload
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
+          source: "lumina_server"
+          target: "/opt/lumina"
+
+      - name: restart
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /var/www/lumina-server
-            git pull origin main
-            go build -o lumina-server .
-            sudo systemctl restart lumina.service
+            chmod +x /opt/lumina/lumina_server
+            # Ensure GIN_MODE=release is set for the service
+            # If using systemd, add 'Environment=GIN_MODE=release' to your .service file
+            sudo systemctl restart lumina
